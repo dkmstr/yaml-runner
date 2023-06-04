@@ -16,7 +16,7 @@ EXIT_EXPR_YAML = '''
     var: x0
     value: 5
 - exit:
-    expr: x0 * 2
+    code: x0 * 2
 '''
 
 

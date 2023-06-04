@@ -60,11 +60,8 @@ def exec_continue(
 
 def exec_exit(node: typing.Mapping[str, typing.Any], variables: typing.MutableMapping[str, typing.Any]) -> None:
     if 'code' in node['exit']:
-        raise Exit(node['exit']['code'])
-    elif 'expr' in node['exit']:
-        raise Exit(int(evaluators.eval_expr(node['exit']['expr'], variables)))
-    else:
-        raise Exit(0)
+        raise Exit(int(evaluators.eval_expr(node['exit']['code'], variables)))
+    raise Exit(0)
 
 
 def exec_request(
@@ -75,6 +72,12 @@ def exec_request(
 
 def exec_log(node: typing.Mapping[str, typing.Any], variables: typing.MutableMapping[str, typing.Any]) -> None:
     return evaluators.eval_log(node['log'], variables)
+
+
+def exec_sleep(
+    node: typing.Mapping[str, typing.Any], variables: typing.MutableMapping[str, typing.Any]
+) -> None:
+    return evaluators.eval_sleep(node['sleep'], variables)
 
 
 executors: typing.Dict[
@@ -88,6 +91,7 @@ executors: typing.Dict[
     'exit': exec_exit,
     'request': exec_request,
     'log': exec_log,
+    'sleep': exec_sleep,
 }
 
 
@@ -100,7 +104,6 @@ def do_command(
 
     # Get command name
     command_name = list(node.keys())[0]
-    command = node[command_name]
 
     # Execute command
     if command_name in executors:
@@ -117,7 +120,13 @@ def execute(
         commands = [commands]
 
     for command in commands:
-        do_command(command, variables)
+        try:
+            do_command(command, variables)
+        except (Exit, LoopBreak, LoopContinue):
+            raise
+        except Exception as e:
+            # Attach command to exception
+            raise Exception(f"Error executing command: {command}") from e
 
 
 # Interprets and executes the YAML file, return exit code

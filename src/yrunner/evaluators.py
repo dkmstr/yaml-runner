@@ -1,5 +1,6 @@
 import typing
 import logging
+import time
 import re
 
 import requests
@@ -25,30 +26,40 @@ BUILTINS = {
 }
 
 
-# Substitutes variables in a string
-# Variables to be substituted are in the form {{ var }}
-# Variables can be nested, e.g. {{ var1.var2 }}
-# Use a regular expression to find all variables, and then substitute them
+# Substitutes (evaluates) variables in a string
+# Variables to be substituted are in the form {{ var }} (or expressions {{ var + 1 }})
 def eval_string(string: str, variables: typing.Mapping[str, typing.Any]) -> str:
     regex = re.compile(r"{{\s*([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)*)\s*}}")
     for match in regex.finditer(string):
-        var = match.group(1)
-        value = variables
-        for subvar in var.split('.'):
-            value = value[subvar]
+        value = eval_expr(match.group(1), variables, interpolate=False)
         string = string.replace(match.group(0), str(value))
     return string
 
 
-def eval_expr(expr: str, variables: typing.Mapping[str, typing.Any]) -> typing.Any:
-    return eval(expr, {"__builtins__": BUILTINS}, variables)  # nosec: Secure eval, only allow safe builtins (arithmetics, and a few more)
+def eval_expr(
+    expr: str,
+    variables: typing.Mapping[str, typing.Any],
+    *,
+    force_quotes: bool = False,  # Force quotes on strings
+    interpolate: bool = True   # Evaluate the result of the expression (interpolating variables of string)
+) -> typing.Any:
+    if isinstance(expr, str):
+        if force_quotes:
+            expr = '"' + expr + '"'
+        ret = eval(
+            expr, {"__builtins__": BUILTINS}, variables
+        )  # nosec: Secure eval, only allow safe builtins (arithmetics, and a few more)
+    else:
+        ret = expr
+    if interpolate and isinstance(ret, str):
+        ret = eval_string(ret, variables)
+    return ret
+
 
 # Evaluate an expresion (used on "set") using "eval", without builtins (to avoid security issues)
 def eval_set(data: typing.Mapping[str, str], variables: typing.MutableMapping[str, typing.Any]) -> typing.Any:
-    if 'expr' in data:
-        variables[data['var']] = eval_expr(data['expr'], variables)
-    elif 'value' in data:
-        variables[data['var']] = data['value']
+    if 'value' in data:
+        variables[data['var']] = eval_expr(data['value'], variables)
     else:
         raise Exception("Invalid set command")
 
@@ -80,6 +91,17 @@ def eval_request(
         ]
     }
 
+    # Fix url with eval_string
+    lrequest['url'] = eval_string(lrequest['url'], variables)
+    # If parameters are present,
+    if 'params' in lrequest:
+        if isinstance(lrequest['params'], str):
+            lrequest['params'] = eval_string(lrequest['params'], variables)
+        elif isinstance(lrequest['params'], dict):
+            lrequest['params'] = {
+                k: eval_string(v, variables) for k, v in lrequest['params'].items()
+            }
+
     # Make request
     response = requests.request(**lrequest)
 
@@ -87,10 +109,21 @@ def eval_request(
     if 'response_var' in request:
         variables[request['response_var']] = response
 
-def eval_log(
-    log: typing.Mapping[str, typing.Any], variables: typing.MutableMapping[str, typing.Any]
-) -> None:
+
+def eval_log(log: typing.Mapping[str, typing.Any], variables: typing.MutableMapping[str, typing.Any]) -> None:
     # Convert to logging level
     level: int = logging.getLevelName(log.get('level', 'INFO').upper())
+    args = log.get('args', [])
+    kwargs = log.get('kwargs', {})
 
-    logger.log(level, log['message'], *log['args'], **log['kwargs'])
+    logger.log(level, eval_string(log['message'], variables), args, kwargs)
+
+
+def eval_sleep(
+    sleep: typing.Mapping[str, typing.Any], variables: typing.MutableMapping[str, typing.Any]
+) -> None:
+    value = eval_expr(sleep['value'], variables)
+    if isinstance(value, (int, float)):
+        time.sleep(value)
+    else:
+        raise Exception("Invalid sleep command")

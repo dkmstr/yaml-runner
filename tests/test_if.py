@@ -12,13 +12,13 @@ IF_YAML = '''
     commands:
         - set:
             var: x1
-            value: "hello world"
+            value: '"hello world"'
 - if:
     condition: x0 == 10
     commands:
         - set:
             var: x1
-            value: "NO hello world"
+            value: '"NO hello world"'
 '''
 
 logger = logging.getLogger(__name__)

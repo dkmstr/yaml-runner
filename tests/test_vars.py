@@ -9,10 +9,10 @@ SETS_YAML = '''
     value: 5
 - set:
     var: x1
-    value: "hello world"
+    value: '"hello world"'  # escape the quotes, needed for YAML and our evaluator (it will be considered an expression otherwise)
 - set:
     var: x2
-    expr: x1 * x0
+    value: x1 * x0
 '''
 
 logger = logging.getLogger(__name__)

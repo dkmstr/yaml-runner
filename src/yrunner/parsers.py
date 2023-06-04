@@ -22,14 +22,14 @@ def parse_command(command: str) -> typing.List[str]:
 
     tokens = []
     quote: str = ""
-    current_token = ""
+    current_token = ""   # nosec: command token, not a password
     state = State.NORMAL
     for c in command:
         if state == State.NORMAL:
             if c == " ":
                 if current_token:
                     tokens.append(current_token)
-                    current_token = ""
+                    current_token = ""  # nosec: current_token is not a password
             elif c in ["'", '"']:
                 current_token += c
                 quote = c
@@ -42,7 +42,7 @@ def parse_command(command: str) -> typing.List[str]:
             elif c == quote:
                 current_token += c
                 tokens.append(current_token)
-                current_token = ""
+                current_token = ""  # nosec: current_token is not a password
                 state = State.NORMAL
             else:
                 current_token += c

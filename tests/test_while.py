@@ -12,7 +12,7 @@ WHILE_YAML = '''
     commands:
         - set:
             var: x0
-            expr: x0 - 1
+            value: x0 - 1
 '''
 
 logger = logging.getLogger(__name__)
