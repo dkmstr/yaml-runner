@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 # secure builtins
 # Allow some builtins, those that are safe
 # This is used to evaluate expressions in "set"
-BUILTINS = {
+BUILTINS: typing.Final[typing.Dict[str, typing.Callable]] = {
     'abs': abs,
     'all': all,
     'any': any,
@@ -24,14 +24,15 @@ BUILTINS = {
     'round': round,
     'sum': sum,
 }
+# regex to find variables in a string
+INTERPOLATE_REGEX: typing.Final[re.Pattern] = re.compile(r'{{\s*(.*?)\s*}}')
 
 
 # Substitutes (evaluates) variables in a string
-# Variables to be substituted are in the form {{ var }} (or expressions {{ var + 1 }})
+# Variables to be substituted are in the form {{ expression }} (or expressions {{ var + 1 }})
 def eval_string(string: str, variables: typing.Mapping[str, typing.Any]) -> str:
-    regex = re.compile(r"{{\s*([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)*)\s*}}")
-    for match in regex.finditer(string):
-        value = eval_expr(match.group(1), variables, interpolate=False)
+    for match in INTERPOLATE_REGEX.finditer(string):
+        value = eval_expr(match.group(1), variables)  # evaluate the expressio
         string = string.replace(match.group(0), str(value))
     return string
 
@@ -41,7 +42,6 @@ def eval_expr(
     variables: typing.Mapping[str, typing.Any],
     *,
     force_quotes: bool = False,  # Force quotes on strings
-    interpolate: bool = True   # Evaluate the result of the expression (interpolating variables of string)
 ) -> typing.Any:
     if isinstance(expr, str):
         if force_quotes:
@@ -51,8 +51,6 @@ def eval_expr(
         )  # nosec: Secure eval, only allow safe builtins (arithmetics, and a few more)
     else:
         ret = expr
-    if interpolate and isinstance(ret, str):
-        ret = eval_string(ret, variables)
     return ret
 
 
@@ -98,9 +96,7 @@ def eval_request(
         if isinstance(lrequest['params'], str):
             lrequest['params'] = eval_string(lrequest['params'], variables)
         elif isinstance(lrequest['params'], dict):
-            lrequest['params'] = {
-                k: eval_string(v, variables) for k, v in lrequest['params'].items()
-            }
+            lrequest['params'] = {k: eval_string(v, variables) for k, v in lrequest['params'].items()}
 
     # Make request
     response = requests.request(**lrequest)
