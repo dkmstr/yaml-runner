@@ -1,7 +1,7 @@
 from unittest import TestCase
 import logging
 
-from yrunner.runner import run
+from yrunner import YRunner
 
 SETS_YAML = '''
 - set:
@@ -13,6 +13,9 @@ SETS_YAML = '''
 - set:
     var: x2
     value: x1 * x0
+- set:
+    var: x3
+    value: passed_in * 2  # passed_in is a variable passed in from the command line
 '''
 
 logger = logging.getLogger(__name__)
@@ -20,10 +23,18 @@ logger = logging.getLogger(__name__)
 
 class TestVars(TestCase):
     def test_set(self):
-        variables = {}
-        result_code = run(SETS_YAML, variables)
+        variables = {'passed_in': 'hello world'}
+        runner = YRunner(variables=variables)
+        result_code = runner.run(SETS_YAML)
         self.assertEqual(result_code, 0)
+
+        # Assert variables is same as runner.variables
+        self.assertEqual(variables, runner.variables)
+
+        # And now validate the variables
         self.assertEqual(variables['x0'], 5)
         self.assertEqual(variables['x1'], 'hello world')
         self.assertEqual(variables['x2'], 'hello worldhello worldhello worldhello worldhello world')
+        self.assertEqual(variables['x3'], 'hello worldhello world')
+
 

@@ -1,7 +1,7 @@
 from unittest import TestCase
 import logging
 
-from yrunner.runner import run
+from yrunner import YRunner
 
 WHILE_YAML = '''
 - set:
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class TestIf(TestCase):
     def test_while(self):
-        variables = {}
-        result_code = run(WHILE_YAML, variables)
+        runner = YRunner()
+        result_code = runner.run(WHILE_YAML)
         self.assertEqual(result_code, 0)
-        self.assertEqual(variables['x0'], 0)
+        self.assertEqual(runner.variables['x0'], 0)

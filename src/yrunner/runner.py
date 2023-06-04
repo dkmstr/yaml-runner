@@ -83,7 +83,7 @@ class YRunner:
 
     def __init__(
         self,
-        locals: typing.MutableMapping[str, typing.Any],
+        variables: typing.Optional[typing.MutableMapping[str, typing.Any]] = None,
         extra_commands: typing.Optional[typing.List[Command]] = None,
     ) -> None:
         # copy COMMANDS to self.commands
@@ -92,7 +92,10 @@ class YRunner:
             for command in extra_commands:
                 self.commands[command.name] = command
 
-        self.variables = locals  # reference to the variables
+        if variables is None:
+            variables = {}
+            
+        self.variables = variables  # reference to the variables
 
     def _exec_command(self, node: typing.Mapping[str, typing.Any]) -> None:
         # Node must have only one key

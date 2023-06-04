@@ -2,7 +2,7 @@ from unittest import TestCase
 import time
 import logging
 
-from yrunner.runner import run
+from yrunner import YRunner
 
 SLEEP_YAML = '''
 ---
@@ -27,19 +27,19 @@ logger = logging.getLogger(__name__)
 
 class TestSleep(TestCase):
     def test_sleep_value(self):
-        variables = {}
+        runner = YRunner()
         start_time = time.time()
-        result_code = run(SLEEP_YAML, variables)
+        result_code = runner.run(SLEEP_YAML)
         end_time = time.time()
         self.assertTrue(end_time - start_time >= 1)
         self.assertEqual(result_code, 0)
-        self.assertEqual(variables['x0'], 5)
+        self.assertEqual(runner.variables['x0'], 5)
 
     def test_sleep_expr(self):
-        variables = {}
+        runner = YRunner()
         start_time = time.time()
-        result_code = run(SLEEP_EXPR_YAML, variables)
+        result_code = runner.run(SLEEP_EXPR_YAML)
         end_time = time.time()
         self.assertTrue(end_time - start_time >= 1.2)
         self.assertEqual(result_code, 0)
-        self.assertEqual(variables['x0'], 0.6)
+        self.assertEqual(runner.variables['x0'], 0.6)

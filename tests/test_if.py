@@ -1,7 +1,7 @@
 from unittest import TestCase
 import logging
 
-from yrunner.runner import run
+from yrunner import YRunner
 
 IF_YAML = '''
 - set:
@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 class TestIf(TestCase):
     def test_if(self):
-        variables = {}
-        result_code = run(IF_YAML, variables)
+        runner = YRunner()
+        result_code = runner.run(IF_YAML)
         self.assertEqual(result_code, 0)
-        self.assertEqual(variables['x0'], 5)
-        self.assertEqual(variables['x1'], 'hello world')
+        self.assertEqual(runner.variables['x0'], 5)
+        self.assertEqual(runner.variables['x1'], 'hello world')

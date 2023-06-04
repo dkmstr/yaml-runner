@@ -1,7 +1,7 @@
 from unittest import TestCase
 import logging
 
-from yrunner.runner import run
+from yrunner import YRunner
 
 EXIT_YAML = '''
 - set:
@@ -25,14 +25,14 @@ logger = logging.getLogger(__name__)
 
 class TestExit(TestCase):
     def test_exit_code(self):
-        variables = {}
-        result_code = run(EXIT_YAML, variables)
+        runner = YRunner()
+        result_code = runner.run(EXIT_YAML)
         self.assertEqual(result_code, 32)
-        self.assertEqual(variables['x0'], 5)
+        self.assertEqual(runner.variables['x0'], 5)
 
     def test_exit_expr(self):
-        variables = {}
-        result_code = run(EXIT_EXPR_YAML, variables)
+        runner = YRunner()
+        result_code = runner.run(EXIT_EXPR_YAML)
         self.assertEqual(result_code, 10)
-        self.assertEqual(variables['x0'], 5)
+        self.assertEqual(runner.variables['x0'], 5)
 

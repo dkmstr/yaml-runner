@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from yrunner.runner import run
+from yrunner import YRunner
 
 REQUEST_YAML = '''
 ---
@@ -33,13 +33,13 @@ REQUEST_VAR_YAML = '''
 
 class TestRequest(TestCase):
     def test_request(self):
-        variables = {}
-        result_code = run(REQUEST_YAML, variables)
+        runner = YRunner()
+        result_code = runner.run(REQUEST_YAML)
         self.assertEqual(result_code, 0)
 
     def test_request_var(self):
-        variables = {}
-        result_code = run(REQUEST_VAR_YAML, variables)
+        runner = YRunner()
+        result_code = runner.run(REQUEST_VAR_YAML)
         self.assertEqual(result_code, 0)
-        self.assertEqual(variables['response'].status_code, 200)
-        self.assertEqual(variables['response'].url, 'https://httpbin.org/get?var=get')
+        self.assertEqual(runner.variables['response'].status_code, 200)
+        self.assertEqual(runner.variables['response'].url, 'https://httpbin.org/get?var=get')
