@@ -8,6 +8,9 @@ class YRunnerInvalidCommand(YRunnerError):
 class YRunnerInvalidParameter(YRunnerError):
     pass
 
+class YRunnerInvalidString(YRunnerError):
+    pass
+
 # Not exceptions, used to control the flow of the program
 
 
