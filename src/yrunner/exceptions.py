@@ -1,30 +1,30 @@
-class YRunnerError(Exception):
+class YRunnerException(Exception):
     pass
 
 
-class YRunnerInvalidCommand(YRunnerError):
+class YRunnerInvalidCommand(YRunnerException):
     pass
 
-class YRunnerInvalidParameter(YRunnerError):
+class YRunnerInvalidParameter(YRunnerException):
     pass
 
-class YRunnerInvalidString(YRunnerError):
+class YRunnerInvalidContent(YRunnerException):
     pass
 
 # Not exceptions, used to control the flow of the program
 
 
 # To catch break on while loops
-class LoopBreak(Exception):
+class LoopBreak(YRunnerException):
     pass
 
 
 # To catch continue on while loops
-class LoopContinue(Exception):
+class LoopContinue(YRunnerException):
     pass
 
 
 # To catch exit
-class Exit(Exception):
+class Exit(YRunnerException):
     def __init__(self, code: int) -> None:
         self.code = code

@@ -79,8 +79,8 @@ BUILTINS: typing.Final[typing.Dict[str, typing.Callable]] = {
 # regex to find variables in a string
 INTERPOLATE_REGEX: typing.Final[re.Pattern] = re.compile(r'{{\s*(.*?)\s*}}')
 
-# Invalid strings re (to secure builtins, we check that no xxx.__identifier__ is used)
-INVALID_STRINGS_RE: typing.Final[re.Pattern] = re.compile(r'\.__\w+__')
+# Invalid content re (to secure builtins, we check that no xxx.__identifier__ is used)
+INVALID_CONTENT_RE: typing.Final[re.Pattern] = re.compile(r'__\w+__')
 
 
 class YRunner:
@@ -106,11 +106,14 @@ class YRunner:
 
     def _exec_command(self, node: typing.Mapping[str, typing.Any]) -> None:
         # Node must have only one key
-        if len(node) != 1:
-            raise Exception(f"Invalid command: {node}")
+        if isinstance(node, str):  # Simple command
+            command_name = node
+        else:
+            if len(node) != 1:
+                raise Exception(f"Invalid command: {node}")
 
-        # Get command name
-        command_name = list(node.keys())[0]
+            # Get command name
+            command_name = list(node.keys())[0]
 
         # Execute command
         cmd = self.commands.get(command_name)
@@ -126,7 +129,7 @@ class YRunner:
         for command in commands:
             try:
                 self._exec_command(command)
-            except (exceptions.Exit, exceptions.LoopBreak, exceptions.LoopContinue):
+            except exceptions.YRunnerException:
                 raise
             except Exception as e:
                 # Attach command to exception
@@ -173,14 +176,13 @@ class YRunner:
         force_quotes: bool = False,  # Force quotes on strings
     ) -> typing.Any:
         # if matchs invalid strings, raise exception indicating that and the string found
-        # Locate the invalid string
-        match_invalid = INVALID_STRINGS_RE.search(expr)
-        if match_invalid is not None:
-            # Get the invalid string
-            invalid_string = match_invalid.group(0)
-            raise exceptions.YRunnerInvalidString(f"Invalid string in {expr}: {invalid_string}")
-
         if isinstance(expr, str):
+            # Look for invalid strings
+            match_invalid = INVALID_CONTENT_RE.search(expr)
+            if match_invalid is not None:
+                # Get the invalid string
+                invalid_string = match_invalid.group(0)
+                raise exceptions.YRunnerInvalidContent(f"Invalid content in {expr}: {invalid_string}")
             if force_quotes:
                 expr = '"' + expr + '"'
             ret = eval(
