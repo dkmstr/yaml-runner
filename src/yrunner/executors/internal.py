@@ -7,8 +7,6 @@ import typing
 import time
 import logging
 
-import requests
-
 from .. import exceptions, types
 
 if typing.TYPE_CHECKING:
@@ -65,15 +63,6 @@ def exec_log(node: typing.Mapping[str, typing.Any], runner: 'YRunner') -> None:
     logger.log(level, runner.eval_string(log['message']), args, kwargs)
 
 
-def exec_sleep(node: typing.Mapping[str, typing.Any], runner: 'YRunner') -> None:
-    sleep = node['sleep']
-    value = runner.eval_expr(sleep['value'])
-    if isinstance(value, (int, float)):
-        time.sleep(value)
-    else:
-        raise Exception("Invalid sleep types.Command")
-
-
 # Define internal commands
 COMMANDS: typing.Final[typing.List[types.Command]] = [
     types.Command('set', exec_set, [types.CommandParameter('name'), types.CommandParameter('value')]),
@@ -85,7 +74,6 @@ COMMANDS: typing.Final[typing.List[types.Command]] = [
     ),
     types.Command('break', exec_break),
     types.Command('continue', exec_continue),
-    types.Command('exit', exec_exit, [types.CommandParameter('code', True)]),
+    types.Command('exit', exec_exit, [types.CommandParameter('code', optional=True)]),
     types.Command('log', exec_log, [types.CommandParameter('message')]),
-    types.Command('sleep', exec_sleep, [types.CommandParameter('seconds')]),
 ]

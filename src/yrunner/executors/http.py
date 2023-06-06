@@ -1,10 +1,9 @@
 import typing
-import time
 import logging
 
 import requests
 
-from .. import exceptions, types
+from .. import types
 
 if typing.TYPE_CHECKING:
     from ..runner import YRunner

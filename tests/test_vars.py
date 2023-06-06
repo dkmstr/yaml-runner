@@ -1,5 +1,6 @@
-from unittest import TestCase
+import typing
 import logging
+from unittest import TestCase
 
 from yrunner import YRunner
 
@@ -16,14 +17,20 @@ SETS_YAML = '''
 - set:
     var: x3
     value: passed_in * 2  # passed_in is a variable passed in from the command line
+- set:
+    var: x4
+    value: "lambda x: x * 2"  # Need quotes to escape the ":", otherwise YAML will think it's a dictionary
+- set:
+    var: x5
+    value: x4(x0)
 '''
 
 logger = logging.getLogger(__name__)
 
 
 class TestVars(TestCase):
-    def test_set(self):
-        variables = {'passed_in': 'hello world'}
+    def test_set(self) -> None:
+        variables: typing.Dict[str, typing.Any] = {'passed_in': 'hello world'}
         runner = YRunner(variables=variables)
         result_code = runner.run(SETS_YAML)
         self.assertEqual(result_code, 0)
@@ -36,5 +43,6 @@ class TestVars(TestCase):
         self.assertEqual(variables['x1'], 'hello world')
         self.assertEqual(variables['x2'], 'hello worldhello worldhello worldhello worldhello world')
         self.assertEqual(variables['x3'], 'hello worldhello world')
+        self.assertEqual(variables['x4'](5), 10)
 
 

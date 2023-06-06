@@ -40,14 +40,17 @@ class YRunner:
 
     def __init__(
         self,
+        *extra_commands: typing.Union[typing.List[types.Command], types.Command],
         variables: typing.Optional[typing.MutableMapping[str, typing.Any]] = None,
-        extra_commands: typing.Optional[typing.Iterable[types.Command]] = None,
     ) -> None:
         # copy COMMANDS to self.commands
         self.commands = {command.name: command for command in internal.COMMANDS}
-        if extra_commands is not None:
-            for command in extra_commands:
-                self.commands[command.name] = command  # Can override existing commands
+        for command in extra_commands:  # Can override existing commands
+            if isinstance(command, list):
+                for cmd in command:
+                    self.commands[cmd.name] = cmd  
+            else:
+                self.commands[command.name] = command
 
         if variables is None:
             variables = {}
