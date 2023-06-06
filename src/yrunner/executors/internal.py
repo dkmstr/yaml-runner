@@ -1,13 +1,18 @@
+# Copyright (c) 2023 Adolfo Gómez García <dkmaster@dkmon.com>
+#
+# This software is released under the MIT License.
+# https://opensource.org/licenses/MIT
+
 import typing
 import time
 import logging
 
 import requests
 
-from . import exceptions
+from .. import exceptions, types
 
 if typing.TYPE_CHECKING:
-    from .runner import YRunner
+    from ..runner import YRunner
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +22,7 @@ def exec_set(node: typing.Mapping[str, typing.Any], runner: 'YRunner') -> None:
     if 'value' in data:
         runner.set_variable(data['var'], runner.eval_expr(data['value']))
     else:
-        raise exceptions.YRunnerInvalidParameter("Invalid set command, missing 'value' parameter")
+        raise exceptions.YRunnerInvalidParameter("Invalid set types.Command, missing 'value' parameter")
 
 
 def exec_if(node: typing.Mapping[str, typing.Any], runner: 'YRunner') -> None:
@@ -50,48 +55,6 @@ def exec_exit(node: typing.Mapping[str, typing.Any], runner: 'YRunner') -> None:
     raise exceptions.Exit(0)
 
 
-def exec_request(node: typing.Mapping[str, typing.Any], runner: 'YRunner') -> None:
-    # Make a copy of the request, removing non-requests parameters
-    request = node['request']
-    lrequest = {
-        k: v
-        for k, v in request.items()
-        if k
-        in [
-            'method',
-            'url',
-            'params',
-            'data',
-            'headers',
-            'cookies',
-            'auth',
-            'timeout',
-            'allow_redirects',
-            'proxies',
-            'hooks',
-            'stream',
-            'verify',
-            'cert',
-        ]
-    }
-
-    # Fix url with eval_string
-    lrequest['url'] = runner.eval_string(lrequest['url'])
-    # If parameters are present,
-    if 'params' in lrequest:
-        if isinstance(lrequest['params'], str):
-            lrequest['params'] = runner.eval_string(lrequest['params'])
-        elif isinstance(lrequest['params'], dict):
-            lrequest['params'] = {k: runner.eval_string(v) for k, v in lrequest['params'].items()}
-
-    # Make request
-    response = requests.request(**lrequest)
-
-    # Store response
-    if 'response_var' in request:
-        runner.set_variable(request['response_var'], response)
-
-
 def exec_log(node: typing.Mapping[str, typing.Any], runner: 'YRunner') -> None:
     log = node['log']
     # Convert to logging level
@@ -108,4 +71,21 @@ def exec_sleep(node: typing.Mapping[str, typing.Any], runner: 'YRunner') -> None
     if isinstance(value, (int, float)):
         time.sleep(value)
     else:
-        raise Exception("Invalid sleep command")
+        raise Exception("Invalid sleep types.Command")
+
+
+# Define internal commands
+COMMANDS: typing.Final[typing.List[types.Command]] = [
+    types.Command('set', exec_set, [types.CommandParameter('name'), types.CommandParameter('value')]),
+    types.Command(
+        'if', exec_if, [types.CommandParameter('condition'), types.CommandParameter('types.Commands')]
+    ),
+    types.Command(
+        'while', exec_while, [types.CommandParameter('condition'), types.CommandParameter('types.Commands')]
+    ),
+    types.Command('break', exec_break),
+    types.Command('continue', exec_continue),
+    types.Command('exit', exec_exit, [types.CommandParameter('code', True)]),
+    types.Command('log', exec_log, [types.CommandParameter('message')]),
+    types.Command('sleep', exec_sleep, [types.CommandParameter('seconds')]),
+]

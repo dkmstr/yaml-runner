@@ -9,4 +9,6 @@
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
+    "licenser.projectName": "yaml-runner",
+    "licenser.useSingleLineStyle": true,
 }

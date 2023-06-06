@@ -2,61 +2,11 @@ import typing
 import re
 import logging
 
-from . import parsers
-from . import exceptions
-from . import internal_executors
+from . import parsers, types, exceptions
+from . executors import internal
 
 logger = logging.getLogger(__name__)
 
-
-class CommandParameter(typing.NamedTuple):
-    name: str
-    optional: bool = False
-    default: typing.Any = None
-
-
-class Command(typing.NamedTuple):
-    name: str
-    executor: typing.Callable[[typing.Mapping[str, typing.Any], 'YRunner'], None]
-    parameters: typing.Optional[
-        typing.List[CommandParameter]
-    ] = []  # None means any parameter, empty list means no parameters
-
-
-COMMANDS: typing.Final[typing.Dict[str, Command]] = {
-    'set': Command('set', internal_executors.exec_set, [CommandParameter('name'), CommandParameter('value')]),
-    'if': Command(
-        'if', internal_executors.exec_if, [CommandParameter('condition'), CommandParameter('commands')]
-    ),
-    'while': Command(
-        'while', internal_executors.exec_while, [CommandParameter('condition'), CommandParameter('commands')]
-    ),
-    'break': Command('break', internal_executors.exec_break),
-    'continue': Command('continue', internal_executors.exec_continue),
-    'exit': Command('exit', internal_executors.exec_exit, [CommandParameter('code', True)]),
-    'log': Command('log', internal_executors.exec_log, [CommandParameter('message')]),
-    'sleep': Command('sleep', internal_executors.exec_sleep, [CommandParameter('seconds')]),
-    'request': Command(
-        'request',
-        internal_executors.exec_request,
-        [
-            CommandParameter('method'),
-            CommandParameter('url'),
-            CommandParameter('params', True),
-            CommandParameter('data', True),
-            CommandParameter('headers', True),
-            CommandParameter('cookies', True),
-            CommandParameter('auth', True),
-            CommandParameter('timeout', True),
-            CommandParameter('allow_redirects', True),
-            CommandParameter('proxies', True),
-            CommandParameter('hooks', True),
-            CommandParameter('stream', True),
-            CommandParameter('verify', True),
-            CommandParameter('cert', True),
-        ],
-    ),
-}
 
 
 # secure builtins
@@ -84,20 +34,20 @@ INVALID_CONTENT_RE: typing.Final[re.Pattern] = re.compile(r'__\w+__')
 
 
 class YRunner:
-    commands: typing.Dict[str, Command]
+    commands: typing.Dict[str, types.Command]
     variables: typing.MutableMapping[str, typing.Any]
     error: typing.Optional[Exception] = None
 
     def __init__(
         self,
         variables: typing.Optional[typing.MutableMapping[str, typing.Any]] = None,
-        extra_commands: typing.Optional[typing.List[Command]] = None,
+        extra_commands: typing.Optional[typing.Iterable[types.Command]] = None,
     ) -> None:
         # copy COMMANDS to self.commands
-        self.commands = COMMANDS.copy()
+        self.commands = {command.name: command for command in internal.COMMANDS}
         if extra_commands is not None:
             for command in extra_commands:
-                self.commands[command.name] = command
+                self.commands[command.name] = command  # Can override existing commands
 
         if variables is None:
             variables = {}
