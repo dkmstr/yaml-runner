@@ -1,8 +1,9 @@
 import typing
 import re
 import logging
+import yaml
 
-from . import parsers, types, exceptions
+from . import types, exceptions
 from . executors import internal
 
 logger = logging.getLogger(__name__)
@@ -91,13 +92,13 @@ class YRunner:
     # Interprets and executes the YAML file, return exit code
     def run(self, script: str) -> int:
         # Parse YAML
-        yaml = parsers.parse_yaml(script)
+        yml = yaml.safe_load(script)
 
         self.error = None
 
         # Execute
         try:
-            self.execute(yaml)
+            self.execute(yml)
         except exceptions.Exit as e:
             logger.info(f"Exit with code {e.code}")
             return e.code
@@ -130,7 +131,8 @@ class YRunner:
     ) -> typing.Any:
         # if matchs invalid strings, raise exception indicating that and the string found
         if isinstance(expr, str):
-            # Look for invalid strings
+            # Look for invalid strings, that is, we don't want to allow xxx.__identifier__
+            # This is to secure the eval we cannot access to the system
             match_invalid = INVALID_CONTENT_RE.search(expr)
             if match_invalid is not None:
                 # Get the invalid string
