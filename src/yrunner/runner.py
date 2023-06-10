@@ -3,11 +3,10 @@ import re
 import logging
 import yaml
 
-from . import types, exceptions
-from . executors import internal
+from . import parser, types, exceptions
+from .executors import internal
 
 logger = logging.getLogger(__name__)
-
 
 
 # secure builtins
@@ -38,18 +37,20 @@ class YRunner:
     commands: typing.Dict[str, types.Command]
     variables: typing.MutableMapping[str, typing.Any]
     error: typing.Optional[Exception] = None
+    use_python_eval: bool = False  # Use python eval instead of simpler own safe eval
 
     def __init__(
         self,
         *extra_commands: typing.Union[typing.List[types.Command], types.Command],
         variables: typing.Optional[typing.MutableMapping[str, typing.Any]] = None,
+        use_python_eval: bool = False,
     ) -> None:
         # copy COMMANDS to self.commands
         self.commands = {command.name: command for command in internal.COMMANDS}
         for command in extra_commands:  # Can override existing commands
             if isinstance(command, list):
                 for cmd in command:
-                    self.commands[cmd.name] = cmd  
+                    self.commands[cmd.name] = cmd
             else:
                 self.commands[command.name] = command
 
@@ -57,6 +58,7 @@ class YRunner:
             variables = {}
 
         self.variables = variables  # reference to the variables
+        self.use_python_eval = use_python_eval
 
     def _exec_command(self, node: typing.Mapping[str, typing.Any]) -> None:
         # Node must have only one key
@@ -140,9 +142,12 @@ class YRunner:
                 raise exceptions.YRunnerInvalidContent(f"Invalid content in {expr}: {invalid_string}")
             if force_quotes:
                 expr = '"' + expr + '"'
-            ret = eval(
-                expr, {"__builtins__": BUILTINS}, self.variables
-            )  # nosec: Secure eval, only allow safe builtins (arithmetics, and a few more)
+            if self.use_python_eval:
+                ret = eval(
+                    expr, {"__builtins__": BUILTINS}, self.variables
+                )  # nosec: Secure eval, only allow safe builtins (arithmetics, and a few more)
+            else:
+                ret = parser.eval_expression(expr, self.variables)
         else:
             ret = expr
         return ret

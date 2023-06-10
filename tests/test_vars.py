@@ -17,6 +17,13 @@ SETS_YAML = '''
 - set:
     var: x3
     value: passed_in * 2  # passed_in is a variable passed in from the command line
+'''
+
+SETS_PYTHON_EVAL_YAML = '''
+---
+- set:
+    var: x0
+    value: 5
 - set:
     var: x4
     value: "lambda x: x * 2"  # Need quotes to escape the ":", otherwise YAML will think it's a dictionary
@@ -43,6 +50,11 @@ class TestVars(TestCase):
         self.assertEqual(variables['x1'], 'hello world')
         self.assertEqual(variables['x2'], 'hello worldhello worldhello worldhello worldhello world')
         self.assertEqual(variables['x3'], 'hello worldhello world')
+
+    def test_set_python_eval(self) -> None:
+        variables: typing.Dict[str, typing.Any] = {}
+        runner = YRunner(variables=variables, use_python_eval=True)
+        result_code = runner.run(SETS_PYTHON_EVAL_YAML)
         self.assertEqual(variables['x4'](5), 10)
 
 
